@@ -76,17 +76,6 @@ func (g *Grid) String() string {
 	return b.String()
 }
 
-func SpawnGlider(g *Grid, ox, oy int) {
-	pattern := [][2]int{
-		{1, 0},
-		{2, 1},
-		{0, 2}, {1, 2}, {2, 2},
-	}
-	for _, p := range pattern {
-		g.set(ox+p[0], oy+p[1], true)
-	}
-}
-
 func spawnRPentonimo(g *Grid, ox, oy int) {
 	pattern := [][2]int{
 		{1, 0}, {2, 0},
@@ -99,21 +88,16 @@ func spawnRPentonimo(g *Grid, ox, oy int) {
 	}
 }
 
-func spawnGosperGun(g *Grid, ox, oy int) {
-	pattern := [][2]int{
-		{24, 0},
-		{22, 1}, {24, 1},
-		{12, 2}, {13, 2}, {20, 2}, {21, 2}, {34, 2}, {35, 2},
-		{11, 3}, {15, 3}, {20, 3}, {21, 3}, {34, 3}, {35, 3},
-		{0, 4}, {1, 4}, {10, 4}, {16, 4}, {20, 4}, {21, 4},
-		{0, 5}, {1, 5}, {10, 5}, {14, 5}, {16, 5}, {17, 5}, {22, 5}, {24, 5},
-		{10, 6}, {16, 6}, {24, 6},
-		{11, 7}, {15, 7},
-		{12, 8}, {13, 8},
+func (g *Grid) Equal(other *Grid) bool {
+	if g.w != other.w || g.h != other.h {
+		return false
 	}
-	for _, p := range pattern {
-		g.set(ox+p[0], oy+p[1], true)
+	for i := range g.cell {
+		if g.cell[i] != other.cell[i] {
+			return false
+		}
 	}
+	return true
 }
 
 func clearScreen() {
@@ -124,14 +108,40 @@ func main() {
 	const width, heigth = 80, 40
 	grid := NewGrid(width, heigth)
 	
-	spawnGosperGun(grid, 1, 1)
-
+	spawnRPentonimo(grid, 19, 9)
 	generation := 0
+
+	var history []*Grid
+
 	for {
 		clearScreen()
 		fmt.Print(grid.String())
-		fmt.Printf("\nGeneration: %d", generation)
-		time.Sleep(50 * time.Millisecond)
+		fmt.Printf("\nGeneration: %d\n", generation)
+		time.Sleep(5 * time.Millisecond)
+
+		matchIndex := -1
+		for i, past := range history {
+			if grid.Equal(past) {
+				matchIndex = i
+				break
+			}
+		}
+
+		if matchIndex != -1 {
+			stepsAgo := len(history) - matchIndex
+			if stepsAgo == 1 {
+				fmt.Printf("\nStill life in generation %d\n", generation)
+			} else {
+				fmt.Printf("\nLoop detected, period %d (last seen %d generations ago)\n", stepsAgo, stepsAgo)
+			}
+			break
+		}
+
+		history = append(history, grid)
+		if len(history) > 8 {
+			history = history[1:]
+		}
+
 		grid = grid.Step()
 		generation++
 	}
